@@ -2,20 +2,22 @@
 
 ## Browser workspace
 
-The `website/` directory contains the current review interface, PDF page renderer, conservative DOCX editing engine, and lab-hosted Ollama connector. See [website setup and workflow](website/README.md). Copy `website/.dev.vars.example` to `website/.dev.vars` and set your server URL locally before starting the website.
+The `website/` directory contains the current review interface, PDF page renderer, conservative DOCX editing engine, and model connections. After reviewing and selecting proposed edits, **Create updated files** provides an updated Word download, Word body-text preview, and, when the local converter is available, an updated PDF download and page preview. See [website setup and workflow](website/README.md).
 
-The working default is `qwen3-vl:4b-instruct`. The provided larger `qwen3.6:35b-a3b` model worked for text but returned image-runner errors during testing. A completed website test took 6.796 seconds total; it found only one of four clear synthetic text corrections. This is an experimental review tool, not validated unattended editing.
+The optional local Codex CLI connection requests `gpt-6-astra` using the installed CLI's existing ChatGPT sign-in. A completed website test recovered all **3 of 3 checked corrections on one real marked page** in **13.4 seconds**. The smaller lab-hosted `qwen3-vl:4b-instruct` model returned no edits on that page. This is a small comparison, not a full-document accuracy score or evidence of unattended editing. The human-edited reference was excluded from model input.
+
+For local Codex setup, see [LOCAL_CODEX.md](website/LOCAL_CODEX.md). Inference runs on OpenAI servers and uses the signed-in Codex allowance; the local adapter is not a general-purpose API key. PDF conversion uses installed Microsoft Word on Windows to render the updated DOCX locally. The hosted website cannot access the local Codex adapter or desktop Word and does not provide this PDF conversion. Lab-hosted Ollama remains a separate supported model connection; copy `website/.dev.vars.example` to the ignored `.dev.vars` file for local configuration.
 
 Private CI source documents, scanned markups, human-edited references, handbooks, endpoint configuration, model credentials, generated experiment runs, and local dependencies are excluded from this repository. The included website demo documents are synthetic.
 
-The Python CLI below is an earlier API-adapter prototype. For the tested lab Ollama connection, use the website.
+The Python CLI below is an earlier API-adapter prototype. Use the website for the tested Ollama/Codex connections and Word/PDF output workflow.
 
 
-This prototype turns a marked-up PDF and its original Word document into an explicit edit list, an edited Word copy, and review reports. It is a starting point for Jaideep's experiment. Real handwriting accuracy has **not** been measured yet.
+This prototype turns a marked-up PDF and its original Word document into an explicit edit list, an edited Word copy, and review reports. The website adds a PDF rendered from the updated Word copy when the local converter is available. Real handwriting has been checked on one page; a representative held-out document evaluation remains to be done.
 
 The workflow is:
 
-**Original DOCX + marked-up PDF → vision model → proposed edits → exact text checks → edited DOCX → comparison with human reference**
+**Original DOCX + marked-up PDF → vision model → proposed edits → human selection + exact text checks → updated DOCX + locally rendered PDF → comparison with human reference**
 
 The model interprets the handwriting and locates it within named Word paragraphs. Local code applies the edits. The human-edited reference is used only during evaluation, never during a test prediction.
 
@@ -135,11 +137,11 @@ python -m pytest --basetemp tmp/test-run-new
 
 Tests cover Word run/style preservation, exact matching, ambiguous and overlapping edits, inserts/deletions, unsupported structures, source protection, evaluation diagnostics, escaped HTML, both API request formats, refusal/truncation/malformed responses, and provider URL handling. They make no live API calls. Use a fresh test temp path on this workspace if OS temp access is restricted.
 
-The demonstration scan was rendered and inspected. Automatic Word rendering was attempted but the available runtime has no LibreOffice executable, so the Word outputs have not been visually verified. The initial implementation used synthetic samples and made no live API calls. The offline test suite passed all 103 tests.
+The initial Python implementation used synthetic samples and made no live API calls; its offline test suite passed all 103 tests. At that stage, automatic Word rendering was unavailable. The website now supports local PDF rendering through Microsoft Word on Windows. These checks and the single-page model comparison do not establish full-document layout or handwriting accuracy.
 
 ### Review of the supplied lab samples
 
-The project now contains two real triplets in `TASK 2 ( CI )/TASK 2 ( CI )/` and three guidance files in `Workflow/`. The local review is saved in [the sample review summary](runs/lab-sample-review/review-summary.md). Four selected visual observations agree with Sample 1's reference; two compound/move observations retain unresolved details. This is not a full-document or API-model accuracy result.
+Two real document triplets and three guidance files were reviewed locally; those private materials and their reports are excluded from this public repository. Four selected visual observations agreed with one sample's reference, while two compound/move observations retained unresolved details. Separately, the Codex website experiment recovered three checked corrections on one page. Neither check is a full-document accuracy result.
 
 The review identified necessary extensions: revision-aware reference text, genuine Word Track Changes output, paragraph moves/merges/splits, global replacements, and document-wide/page-group context. Both marked PDFs exceed the default 30-page limit. The human reference retains revisions, so the current `evaluate` command's raw extraction must not be treated as a reliable accuracy score for it. Use the review's accepted-view diagnostics while developing a revision-aware evaluator. The source documents remain unchanged.
 

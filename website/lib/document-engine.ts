@@ -4,7 +4,7 @@ import { z } from "zod";
 export const editSchema=z.object({id:z.string().min(1).max(80),block_id:z.string().max(120),operation:z.enum(["replace","delete","insert"]),old_text:z.string().max(10000),new_text:z.string().max(10000),context_before:z.string().max(2000),context_after:z.string().max(2000),page:z.number().int().min(1),reason:z.string().max(4000),needs_review:z.boolean()}).strict();
 export const resultSchema=z.object({edits:z.array(editSchema).max(1500),warnings:z.array(z.string().max(4000)).max(100)}).strict();
 export type Edit=z.infer<typeof editSchema>;
-export type Telemetry={mode:"offline_demo"|"live_api";requested_model:string|null;returned_model:string|null;api_request_seconds:number|null;total_proposal_seconds?:number;demo_load_seconds?:number;export_seconds?:number;response_id?:string;provider_request_id?:string|null;usage?:{input_tokens:number;output_tokens:number;total_tokens:number}|null;recorded_at?:string;prompt_version?:string;provider?:string;server_total_seconds?:number|null;load_seconds?:number|null;prompt_seconds?:number|null;generation_seconds?:number|null;pages_processed?:number[];scan_pages?:number};
+export type Telemetry={mode:"offline_demo"|"live_api"|"codex_cli";requested_model:string|null;returned_model:string|null;api_request_seconds:number|null;total_proposal_seconds?:number;demo_load_seconds?:number;export_seconds?:number;cli_reported_model?:string|null;model_identity_source?:string;response_id?:string;provider_request_id?:string|null;usage?:{input_tokens:number;output_tokens:number;total_tokens:number}|null;recorded_at?:string;prompt_version?:string;provider?:string;server_total_seconds?:number|null;load_seconds?:number|null;prompt_seconds?:number|null;generation_seconds?:number|null;pages_processed?:number[];scan_pages?:number};
 export type Plan={schema_version?:number;source_sha256:string;edits:Edit[];warnings:string[];metadata?:Record<string,unknown>};
 export type Block={id:string;text:string;editable:boolean;blocked_reason:string|null};
 export type Snapshot={bytes:Uint8Array;hash:string;blocks:Block[];hasRevisions:boolean};
@@ -48,6 +48,20 @@ function blocker(p:Element):string|null{
  for(const e of Array.from(p.children)){if(!["pPr","r"].includes(e.localName))return `Contains unsupported ${e.localName}`;if(e.localName==="r"&&Array.from(e.children).some(c=>!["rPr","t"].includes(c.localName)))return "Contains non-text run content";}
  for(let a=p.parentElement;a;a=a.parentElement){if(BLOCKED.has(a.localName))return `Inside ${a.localName}`;if(["tr","tc","tbl"].includes(a.localName)){for(const prop of Array.from(a.children).filter(c=>c.localName.endsWith("Pr"))){if(Array.from(prop.getElementsByTagName("*")).some(e=>REV.has(e.localName)))return "Table has tracked changes";}}}
  return null;
+}
+// Validate again on the local renderer, which receives bytes from the browser.
+export function validateRenderPackage(bytes:Uint8Array){
+ const manifest=checkZip(bytes),zip=unzipSync(bytes);
+ if(Object.keys(zip).length!==manifest.size||Object.entries(zip).some(([name,data])=>manifest.get(name)!==data.length))throw Error("Invalid Word package.");
+ if(!strFromU8(zip["[Content_Types].xml"]).includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"))throw Error("Use a standard DOCX file.");
+ for(const [name,data] of Object.entries(zip)){
+  if(/activeX|embeddings|vbaProject/i.test(name))throw Error("Embedded active content is not supported by PDF export.");
+  if(!/\.(xml|rels)$/.test(name))continue;const xml=strFromU8(data);
+  if(/<!DOCTYPE|<!ENTITY|\bDDE(?:AUTO)?\b/i.test(xml))throw Error("Active document content is unsupported.");
+  if(name.endsWith(".rels")&&/<(?:\w+:)?Relationship\b[^>]*TargetMode\s*=\s*["']External["'][^>]*>/gi.test(xml)){
+   for(const relationship of xml.match(/<(?:\w+:)?Relationship\b[^>]*>/gi)||[]){if(/TargetMode\s*=\s*["']External["']/i.test(relationship)&&! /Type\s*=\s*["'][^"']*\/hyperlink["']/i.test(relationship))throw Error("Linked external content is unsupported by PDF export.");}
+  }
+ }
 }
 export async function sha256(bytes:Uint8Array){return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new Uint8Array(bytes)))).map(x=>x.toString(16).padStart(2,"0")).join("");}
 export async function inspect(bytes:Uint8Array):Promise<Snapshot>{const {doc,paragraphs}=open(bytes);const fields=new Set<Element>();let depth=0;for(const e of Array.from(doc.getElementsByTagName("*"))){if(e.namespaceURI!==W)continue;if(e.localName==="p"&&depth>0)fields.add(e);if(e.localName==="fldChar"){for(let p:Element|null=e.parentElement;p;p=p.parentElement){if(p.localName==="p"){fields.add(p);break;}}const type=e.getAttributeNS(W,"fldCharType");if(type==="begin")depth++;else if(type==="end")depth=Math.max(0,depth-1);}}return{bytes,hash:await sha256(bytes),hasRevisions:Array.from(doc.getElementsByTagName("*")).some(e=>REV.has(e.localName)),blocks:paragraphs.map((p,i)=>{const blocked_reason=fields.has(p)?"Paragraph contains a Word field result":blocker(p);return{id:`word/document.xml:p${String(i+1).padStart(6,"0")}`,text:text(p),editable:!blocked_reason,blocked_reason};})};}

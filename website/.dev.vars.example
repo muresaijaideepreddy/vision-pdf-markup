@@ -1,3 +1,10 @@
+
+# Optional local Codex CLI adapter. Never configure these on a hosted website.
+# Requires Node.js 22.18+ and codex login on this computer.
+CODEX_BRIDGE_URL=http://127.0.0.1:5174
+CODEX_BRIDGE_TOKEN=
+# Optional absolute path when codex is not on PATH.
+CODEX_CLI_PATH=
 OLLAMA_BASE_URL="https://YOUR-LAB-MODEL-SERVER"
 MARKUPDOC_MODEL="qwen3-vl:4b-instruct"
 MARKUPDOC_MODELS="qwen3-vl:4b-instruct,qwen3.6:35b-a3b"
