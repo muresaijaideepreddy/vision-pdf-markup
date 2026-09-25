@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.test-tmp*/
+*.egg-info/
+.env
+.env.*
+!.env.example
+data/
+runs/
+tmp/
+output/
+
+# Private lab documents and local runtimes
+TASK 2 ( CI )/
+Workflow/
+.site-tools/
+.local-vision/
+github-publish/
+website/node_modules/
+website/.dev.vars*
+website/dist/
+website/.wrangler/

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "source_sha256": "91ad099011abbb7558a3256aead3cb48372c861dca20a5f3748c796e1d60b238",
+  "metadata": {
+    "mode": "offline_demo",
+    "scan_pages": 1,
+    "preview_dir": "scan-pages",
+    "model": null
+  },
+  "warnings": [
+    "Synthetic offline demo with supplied edits: no model was called and no handwriting accuracy was measured.",
+    "The dose note is unresolved; the demonstration reference retains the original dose.",
+    "Word layout has not been rendered or visually verified by this program."
+  ],
+  "edits": [
+    {
+      "id": "e001",
+      "block_id": "word/document.xml:p000003",
+      "operation": "replace",
+      "old_text": "cat",
+      "new_text": "dog",
+      "context_before": "The ",
+      "context_after": " was",
+      "page": 1,
+      "reason": "Cross-out cat with replacement dog",
+      "needs_review": false
+    },
+    {
+      "id": "e002",
+      "block_id": "word/document.xml:p000004",
+      "operation": "insert",
+      "old_text": "",
+      "new_text": "now ",
+      "context_before": "The device is ",
+      "context_after": "ready.",
+      "page": 1,
+      "reason": "Insert now at caret",
+      "needs_review": false
+    },
+    {
+      "id": "e003",
+      "block_id": "word/document.xml:p000005",
+      "operation": "delete",
+      "old_text": "preliminary ",
+      "new_text": "",
+      "context_before": "Status: ",
+      "context_after": "review.",
+      "page": 1,
+      "reason": "Delete preliminary and its following space",
+      "needs_review": false
+    },
+    {
+      "id": "e004",
+      "block_id": "word/document.xml:p000010",
+      "operation": "replace",
+      "old_text": "pending",
+      "new_text": "complete",
+      "context_before": "",
+      "context_after": "",
+      "page": 1,
+      "reason": "Table cell replacement",
+      "needs_review": false
+    },
+    {
+      "id": "e005",
+      "block_id": "word/document.xml:p000006",
+      "operation": "replace",
+      "old_text": "10",
+      "new_text": "",
+      "context_before": "The dose was ",
+      "context_after": " mg daily.",
+      "page": 1,
+      "reason": "Question mark requests verification but gives no replacement dose",
+      "needs_review": true
+    }
+  ]
+}
