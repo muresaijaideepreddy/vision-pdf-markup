@@ -1,7 +1,7 @@
 export async function renderSelectedPages(file:File,from:number,to:number,onProgress:(message:string)=>void){
  if(!Number.isInteger(from)||!Number.isInteger(to)||from<1||to<from||to-from>2)throw Error("Choose 1–3 consecutive pages for this pilot run.");
  const pdfjs=await import("pdfjs-dist");pdfjs.GlobalWorkerOptions.workerSrc="/pdf.worker.min.mjs";
- const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),useSystemFonts:false,useWorkerFetch:false});
+ const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),useSystemFonts:false,useWorkerFetch:false,stopAtErrors:true});
  try{const pdf=await task.promise;if(to>pdf.numPages)throw Error(`This PDF has ${pdf.numPages} pages. Adjust the selected range.`);const pages=[];for(let n=from;n<=to;n++){onProgress(`Preparing page ${n} of ${pdf.numPages}…`);const page=await pdf.getPage(n);const original=page.getViewport({scale:1});const viewport=page.getViewport({scale:Math.min(2,1800/Math.max(original.width,original.height))});const canvas=document.createElement("canvas");canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);const ctx=canvas.getContext("2d");if(!ctx)throw Error("Cannot create a page image.");await page.render({canvas,canvasContext:ctx,viewport,background:"rgb(255,255,255)"}).promise;const image_base64=canvas.toDataURL("image/jpeg",0.9).split(",")[1];canvas.width=0;canvas.height=0;pages.push({page:n,image_base64});page.cleanup();}return{pages,scan_pages:pdf.numPages};}finally{await task.destroy();}
 }
 
